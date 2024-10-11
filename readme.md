@@ -23,7 +23,7 @@ Port can be set to `3000` on local for testing.
 
   Returns 5 Thai people.
 
-### Query Parameters
+## Query Parameters
 
 The following query parameters are accepted:
 
