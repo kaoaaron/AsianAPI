@@ -25,7 +25,7 @@ Port can be set to `3000` on local for testing.
 
 ## Query Parameters
 
-The following query parameters are accepted:
+The following query parameters are accepted for the *people* endpoint:
 
 - `limit`
 - `name`
