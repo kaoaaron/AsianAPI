@@ -2,7 +2,7 @@
 
 For local, start up your own local DB or connect to the production database. Ask Aaron if you need credentials.
 
-Port can be set to `3000` on local for testing.
+Port can be set to `3001` on local for testing.
 
 ### Endpoints
 
@@ -25,7 +25,7 @@ Port can be set to `3000` on local for testing.
 
 ## Query Parameters
 
-The following query parameters are accepted for the *people* endpoint:
+The following query parameters are accepted for the _people_ endpoint:
 
 - `limit`
 - `name`
