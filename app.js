@@ -61,7 +61,10 @@ app.get("/people", async (req, res) => {
   if (req.query.occupation) filters.occupation = req.query.occupation;
 
   try {
-    const people = await Person.find(filters).limit(limit);
+    const people = await Person.aggregate([
+      { $match: filters },
+      { $sample: { size: limit || 1 } },
+    ]);
     res.json(people);
   } catch (err) {
     res.status(500).json({ error: err.message });
