@@ -1,12 +1,10 @@
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const serverless = require("serverless-http");
 
 const app = express();
-
 app.use(cors());
 
 mongoose
@@ -30,8 +28,27 @@ const personSchema = new mongoose.Schema({
   notableWork: { type: String },
   gender: { type: String },
 });
-
 const Person = mongoose.model("AsianPeople", personSchema, "AsianPeople");
+
+const visitorSchema = new mongoose.Schema({
+  ip: { type: String, required: true, unique: true },
+  visitedAt: { type: Date, default: Date.now },
+});
+const Visitor = mongoose.model("Visitor", visitorSchema, "Visitors");
+
+app.use(async (req, res, next) => {
+  const ip = req.ip;
+  try {
+    const existingVisitor = await Visitor.findOne({ ip });
+    if (!existingVisitor) {
+      const newVisitor = new Visitor({ ip });
+      await newVisitor.save();
+    }
+  } catch (err) {
+    console.error("Error saving visitor:", err);
+  }
+  next();
+});
 
 app.get("/random", async (req, res) => {
   try {
@@ -67,6 +84,15 @@ app.get("/people", async (req, res) => {
       { $sample: { size: limit || 1 } },
     ]);
     res.json(people);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/visitor-count", async (req, res) => {
+  try {
+    const count = await Visitor.countDocuments({});
+    res.json({ uniqueVisitorCount: count });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
