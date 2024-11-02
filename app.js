@@ -6,6 +6,7 @@ const serverless = require("serverless-http");
 
 const app = express();
 app.use(cors());
+// app.use(express.json()); <-- uncomment to run on local
 
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -99,3 +100,8 @@ app.get("/visitor-count", async (req, res) => {
 });
 
 module.exports.handler = serverless(app);
+
+// const PORT = process.env.PORT || 3001;
+// app.listen(PORT, () => {
+//   console.log(`Server running on http://localhost:${PORT}`);
+// }); uncomment to run on local

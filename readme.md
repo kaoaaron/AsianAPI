@@ -1,8 +1,6 @@
 ### Local Setup
 
-For local, start up your own local DB or connect to the production database. Ask Aaron if you need credentials.
-
-Port can be set to `3001` on local for testing.
+To run locally, uncomment the code in app.js and just run `npm run start`. You need to create a `.env` file with `MONGO_URI` and `PORT` variables. Ask Aaron for prod connection string if required.
 
 ### Endpoints
 
