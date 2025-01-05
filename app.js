@@ -6,7 +6,7 @@ const serverless = require("serverless-http");
 
 const app = express();
 app.use(cors());
-// app.use(express.json()); <-- uncomment to run on local
+app.use(express.json());
 
 mongoose
   .connect(process.env.MONGO_URI, {
