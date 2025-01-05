@@ -37,6 +37,25 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model("Visitor", visitorSchema, "Visitors");
 
+const gameSchema = new mongoose.Schema({
+  date: { type: Date, default: Date.now },
+  totalGames: { type: Number, default: 0 },
+});
+
+const Game = mongoose.model("Game", gameSchema, "Games");
+
+const leaderboardSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  scored: { type: Number, required: true },
+  total: { type: Number, required: true },
+  completedAt: { type: Date, default: Date.now },
+});
+const Leaderboard = mongoose.model(
+  "Leaderboard",
+  leaderboardSchema,
+  "Leaderboard"
+);
+
 app.use(async (req, res, next) => {
   const ip = req.ip;
   try {
@@ -96,6 +115,100 @@ app.get("/visitor-count", async (req, res) => {
     res.json({ uniqueVisitorCount: count });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/increment-games", async (req, res) => {
+  try {
+    const game = await Game.findOne();
+
+    if (game) {
+      game.totalGames += 1;
+      await game.save();
+    } else {
+      const newGame = new Game({ totalGames: 1 });
+      await newGame.save();
+    }
+
+    res.json({ success: true, totalGames: game ? game.totalGames : 1 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/game-count", async (req, res) => {
+  try {
+    const gameCount = await Game.findOne();
+
+    res.status(200).json({ count: gameCount ? gameCount.totalGames : 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/is-leader", async (req, res) => {
+  try {
+    const { scored, total } = req.body;
+    const data = await Leaderboard.aggregate([
+      {
+        $addFields: {
+          ratio: { $divide: ["$scored", "$total"] },
+        },
+      },
+      {
+        $sort: { ratio: 1 },
+      },
+      { $limit: 10 },
+    ]);
+    if (data.length < 10) return res.json(true);
+
+    return res.json(data[0].ratio <= scored / total);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/leaderboard", async (req, res) => {
+  try {
+    const data = await Leaderboard.aggregate([
+      {
+        $addFields: {
+          ratio: { $divide: ["$scored", "$total"] },
+        },
+      },
+      {
+        $sort: { ratio: -1 },
+      },
+      { $limit: 10 },
+    ]);
+
+    const topIds = data.map((item) => item._id);
+    await Leaderboard.deleteMany({
+      _id: { $nin: topIds },
+    });
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/leaderboard", async (req, res) => {
+  const { name, scored, total } = req.body;
+  try {
+    const existingUser = await Leaderboard.findOne({ name });
+    if (existingUser) {
+      return res.json({
+        result: false,
+        msg: "Existing user! Enter different name",
+      });
+    } else {
+      const newLeader = new Leaderboard({ name, scored, total });
+      await newLeader.save();
+      return res.json({ result: true });
+    }
+  } catch (err) {
+    console.error("Error saving leaderboard score:", err);
   }
 });
 
