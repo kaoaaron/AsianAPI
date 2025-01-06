@@ -148,7 +148,7 @@ app.get("/game-count", async (req, res) => {
 
 app.get("/is-leader", async (req, res) => {
   try {
-    const { scored, total } = req.body;
+    const { scored, total } = req.query;
     const data = await Leaderboard.aggregate([
       {
         $addFields: {
