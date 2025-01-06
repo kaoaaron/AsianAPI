@@ -212,6 +212,10 @@ app.post("/leaderboard", async (req, res) => {
   }
 });
 
+app.get("/*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
 module.exports.handler = serverless(app);
 
 // const PORT = process.env.PORT || 3001;
