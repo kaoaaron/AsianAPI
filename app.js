@@ -151,6 +151,11 @@ app.get("/is-leader", async (req, res) => {
     const { scored, total } = req.query;
     const data = await Leaderboard.aggregate([
       {
+        $match: {
+          total: total,
+        },
+      },
+      {
         $addFields: {
           ratio: { $divide: ["$scored", "$total"] },
         },
@@ -173,21 +178,44 @@ app.get("/leaderboard", async (req, res) => {
     const data = await Leaderboard.aggregate([
       {
         $addFields: {
-          ratio: { $divide: ["$scored", "$total"] },
+          ratio: {
+            $cond: [
+              { $eq: ["$total", 0] },
+              null,
+              { $divide: ["$scored", "$total"] },
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          total: { $ne: 0 },
         },
       },
       {
         $sort: { ratio: -1 },
       },
-      { $limit: 10 },
+      {
+        $group: {
+          _id: "$total",
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          total: "$_id",
+          items: { $slice: ["$items", 10] },
+        },
+      },
     ]);
 
-    const topIds = data.map((item) => item._id);
-    await Leaderboard.deleteMany({
-      _id: { $nin: topIds },
-    });
+    const formattedData = data.reduce((acc, item) => {
+      acc[item.total] = item.items;
+      return acc;
+    }, {});
 
-    res.json(data);
+    res.json(formattedData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
