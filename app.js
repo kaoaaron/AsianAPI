@@ -152,22 +152,27 @@ app.get("/is-leader", async (req, res) => {
     const data = await Leaderboard.aggregate([
       {
         $match: {
-          total: total,
+          total: { $eq: +total },
         },
       },
       {
         $addFields: {
-          ratio: { $divide: ["$scored", "$total"] },
+          ratio: {
+            $cond: [
+              { $eq: ["$total", 0] },
+              null,
+              { $divide: ["$scored", "$total"] },
+            ],
+          },
         },
       },
       {
-        $sort: { ratio: 1 },
+        $sort: { ratio: -1 },
       },
       { $limit: 10 },
     ]);
     if (data.length < 10) return res.json(true);
-
-    return res.json(data[0].ratio <= scored / total);
+    return res.json(data[data.length - 1].ratio <= scored / total);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
