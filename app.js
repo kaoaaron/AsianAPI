@@ -45,7 +45,7 @@ const gameSchema = new mongoose.Schema({
 const Game = mongoose.model("Game", gameSchema, "Games");
 
 const leaderboardSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
   scored: { type: Number, required: true },
   total: { type: Number, required: true },
   completedAt: { type: Date, default: Date.now },
@@ -229,7 +229,10 @@ app.get("/leaderboard", async (req, res) => {
 app.post("/leaderboard", async (req, res) => {
   const { name, scored, total } = req.body;
   try {
-    const existingUser = await Leaderboard.findOne({ name });
+    const existingUser = await Leaderboard.findOne({
+      name,
+      total,
+    });
     if (existingUser) {
       return res.json({
         result: false,
