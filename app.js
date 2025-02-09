@@ -3,8 +3,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const serverless = require("serverless-http");
-const geoip = require("geoip-lite");
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -63,10 +61,15 @@ app.use(async (req, res, next) => {
   try {
     const existingVisitor = await Visitor.findOne({ ip });
     if (!existingVisitor) {
-      const geo = geoip.lookup(visitor.ip);
+      let geo;
+      const response = await fetch(`http://ip-api.com/json/${ip}?fields=32770`);
+      if (response.ok) {
+        geo = await response.json();
+      }
+
       const newVisitor = new Visitor({
         ip,
-        countryCode: geo ? geo.country : null,
+        countryCode: geo ? geo.countryCode : null,
       });
       await newVisitor.save();
     }
