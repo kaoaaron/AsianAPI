@@ -3,6 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const serverless = require("serverless-http");
+const geoip = require("geoip-lite");
 
 const app = express();
 app.use(cors());
@@ -34,6 +35,7 @@ const Person = mongoose.model("AsianPeople", personSchema, "AsianPeople");
 const visitorSchema = new mongoose.Schema({
   ip: { type: String, required: true, unique: true },
   visitedAt: { type: Date, default: Date.now },
+  countryCode: { type: String },
 });
 const Visitor = mongoose.model("Visitor", visitorSchema, "Visitors");
 
@@ -61,7 +63,11 @@ app.use(async (req, res, next) => {
   try {
     const existingVisitor = await Visitor.findOne({ ip });
     if (!existingVisitor) {
-      const newVisitor = new Visitor({ ip });
+      const geo = geoip.lookup(visitor.ip);
+      const newVisitor = new Visitor({
+        ip,
+        countryCode: geo ? geo.country : null,
+      });
       await newVisitor.save();
     }
   } catch (err) {
