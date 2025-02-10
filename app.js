@@ -79,6 +79,21 @@ app.use(async (req, res, next) => {
   next();
 });
 
+app.get("/topPlayedCountryCodes", async (req, res) => {
+  const count = parseInt(req.params.count, 10) || 5;
+  try {
+    const codes = await Visitor.aggregate([
+      { $group: { _id: "$countryCode", total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: count },
+      { $project: { countryCode: "$_id", total: 1, _id: 0 } },
+    ]);
+    res.json(codes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/random", async (req, res) => {
   try {
     const person = await Person.aggregate([{ $sample: { size: 1 } }]);
@@ -286,6 +301,33 @@ app.post("/leaderboard", async (req, res) => {
   } catch (err) {
     console.error("Error saving leaderboard score:", err);
   }
+});
+app.get("/visitor-count-history", async (req, res) => {
+  const result = await Visitor.aggregate([
+    {
+      $project: {
+        date: { $dateToString: { format: "%Y-%m-%d", date: "$visitedAt" } },
+      },
+    },
+    {
+      $group: {
+        _id: "$date",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $sort: { _id: 1 },
+    },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id",
+        count: 1,
+      },
+    },
+  ]);
+
+  return res.json(result);
 });
 
 app.get("/*", (req, res) => {
