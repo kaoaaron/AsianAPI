@@ -271,6 +271,33 @@ app.post("/leaderboard", async (req, res) => {
     console.error("Error saving leaderboard score:", err);
   }
 });
+app.get("/visitor-count-history", async (req, res) => {
+  const result = await Visitor.aggregate([
+    {
+      $project: {
+        date: { $dateToString: { format: "%Y-%m-%d", date: "$visitedAt" } },
+      },
+    },
+    {
+      $group: {
+        _id: "$date",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $sort: { _id: 1 },
+    },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id",
+        count: 1,
+      },
+    },
+  ]);
+
+  return res.json(result);
+});
 
 app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
