@@ -101,11 +101,42 @@ app.get("/random/:count", async (req, res) => {
 app.get("/people", async (req, res) => {
   const filters = {};
   const limit = parseInt(req.query.limit, 10) || 0;
+  const minAge = parseInt(req.query.minAge, 10);
+  const maxAge = parseInt(req.query.maxAge, 10);
+  const occupations = req.query.occupations
+    ? req.query.occupations.split(",")
+    : null;
 
   if (req.query.name) filters.name = req.query.name;
   if (req.query.ethnicity) filters.ethnicity = req.query.ethnicity;
   if (req.query.gender) filters.gender = req.query.gender;
-  if (req.query.occupation) filters.occupation = req.query.occupation;
+
+  if (occupations) {
+    filters.occupation = {
+      $in: occupations.map((occ) => new RegExp(`^${occ}$`, "i")),
+    };
+  }
+
+  if (!isNaN(minAge) || !isNaN(maxAge)) {
+    const today = new Date();
+    const minDate = new Date(
+      today.getFullYear() - maxAge,
+      today.getMonth(),
+      today.getDate()
+    );
+    const maxDate = new Date(
+      today.getFullYear() - minAge,
+      today.getMonth(),
+      today.getDate()
+    );
+    filters.birthDate = {
+      $exists: true,
+      $ne: "",
+      $regex: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+    };
+    if (!isNaN(minAge)) filters.birthDate.$lte = maxDate.toISOString();
+    if (!isNaN(maxAge)) filters.birthDate.$gte = minDate.toISOString();
+  }
 
   try {
     const people = await Person.aggregate([
