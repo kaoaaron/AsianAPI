@@ -1,11 +1,21 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const { createClient } = require("redis");
 const cors = require("cors");
 const serverless = require("serverless-http");
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const redisClient = createClient({
+  url: process.env.REDIS_URL,
+});
+
+redisClient
+  .connect()
+  .then(() => console.log("Connected to Redis"))
+  .catch((err) => console.log("Redis Client Error", err));
 
 mongoose
   .connect(process.env.MONGO_URI, {
