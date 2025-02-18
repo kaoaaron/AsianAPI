@@ -164,6 +164,110 @@ app.get("/people", async (req, res) => {
   }
 });
 
+app.get("/people/grouped", async (req, res) => {
+  const filters = {};
+  const limit = parseInt(req.query.limit, 10) || 1;
+  const minAge = parseInt(req.query.minAge, 10);
+  const maxAge = parseInt(req.query.maxAge, 10);
+  const occupations = req.query.occupations
+    ? req.query.occupations.split(",")
+    : null;
+
+  const ethnicities = [
+    "Chinese",
+    "Korean",
+    "Japanese",
+    "Indonesian",
+    "Malaysian",
+    "Filipino",
+    "Thai",
+    "Vietnamese",
+  ];
+
+  if (req.query.gender && req.query.gender !== "both") {
+    filters.gender = req.query.gender;
+  }
+
+  if (occupations) {
+    filters.occupation = {
+      $in: occupations.map((occ) => new RegExp(`^${occ}$`, "i")),
+    };
+  }
+
+  if (!isNaN(minAge) || !isNaN(maxAge)) {
+    const today = new Date();
+    const minDate = new Date(
+      today.getFullYear() - maxAge,
+      today.getMonth(),
+      today.getDate()
+    );
+    const maxDate = new Date(
+      today.getFullYear() - minAge,
+      today.getMonth(),
+      today.getDate()
+    );
+    filters.birthDate = {
+      $exists: true,
+      $ne: "",
+      $regex: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+    };
+    if (!isNaN(minAge)) filters.birthDate.$lte = maxDate.toISOString();
+    if (!isNaN(maxAge)) filters.birthDate.$gte = minDate.toISOString();
+  }
+
+  try {
+    const groups = [];
+
+    for (let i = 0; i < limit; i++) {
+      const selectedEthnicity =
+        ethnicities[Math.floor(Math.random() * ethnicities.length)];
+
+      const correctPerson = await Person.aggregate([
+        {
+          $match: {
+            ...filters,
+            ethnicity: selectedEthnicity,
+          },
+        },
+        { $sample: { size: 1 } },
+      ]);
+
+      if (correctPerson.length === 0) {
+        continue;
+      }
+
+      const otherPeople = await Person.aggregate([
+        {
+          $match: {
+            ...filters,
+            ethnicity: { $ne: selectedEthnicity },
+          },
+        },
+        { $sample: { size: 3 } },
+      ]);
+
+      if (otherPeople.length < 3) {
+        continue;
+      }
+
+      const group = [...correctPerson, ...otherPeople];
+      for (let i = group.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [group[i], group[j]] = [group[j], group[i]];
+      }
+
+      groups.push({
+        people: group,
+        correctEthnicity: selectedEthnicity,
+      });
+    }
+
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/visitor-count", async (req, res) => {
   try {
     const count = await Visitor.countDocuments({});
