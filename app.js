@@ -316,6 +316,7 @@ app.get("/game-count", async (req, res) => {
 });
 
 app.get("/is-leader", async (req, res) => {
+  const limit = 30;
   try {
     const { scored, total } = req.query;
     const data = await Leaderboard.aggregate([
@@ -338,9 +339,9 @@ app.get("/is-leader", async (req, res) => {
       {
         $sort: { ratio: -1 },
       },
-      { $limit: 10 },
+      { $limit: limit },
     ]);
-    if (data.length < 10) return res.json(true);
+    if (data.length < limit) return res.json(true);
     return res.json(data[data.length - 1].ratio <= scored / total);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -379,7 +380,7 @@ app.get("/leaderboard", async (req, res) => {
         $project: {
           _id: 0,
           total: "$_id",
-          items: { $slice: ["$items", 10] },
+          items: { $slice: ["$items", 30] },
         },
       },
     ]);
