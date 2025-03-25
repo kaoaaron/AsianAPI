@@ -59,6 +59,7 @@ const leaderboardSchema = new mongoose.Schema({
   scored: { type: Number, required: true },
   total: { type: Number, required: true },
   completedAt: { type: Date, default: Date.now },
+  type: { type: String, default: "classic" },
 });
 const Leaderboard = mongoose.model(
   "Leaderboard",
@@ -318,11 +319,12 @@ app.get("/game-count", async (req, res) => {
 app.get("/is-leader", async (req, res) => {
   const limit = 30;
   try {
-    const { scored, total } = req.query;
+    const { scored, total, type } = req.query;
     const data = await Leaderboard.aggregate([
       {
         $match: {
           total: { $eq: +total },
+          type: { $eq: type },
         },
       },
       {
@@ -349,6 +351,8 @@ app.get("/is-leader", async (req, res) => {
 });
 
 app.get("/leaderboard", async (req, res) => {
+  const { type } = req.query;
+
   try {
     const data = await Leaderboard.aggregate([
       {
@@ -364,6 +368,7 @@ app.get("/leaderboard", async (req, res) => {
       },
       {
         $match: {
+          type: type,
           total: { $ne: 0 },
         },
       },
@@ -397,11 +402,12 @@ app.get("/leaderboard", async (req, res) => {
 });
 
 app.post("/leaderboard", async (req, res) => {
-  const { name, scored, total } = req.body;
+  const { name, scored, total, type } = req.body;
   try {
     const existingUser = await Leaderboard.findOne({
       name,
       total,
+      type,
     });
     if (existingUser) {
       return res.json({
@@ -409,7 +415,7 @@ app.post("/leaderboard", async (req, res) => {
         msg: "Existing user! Enter different name",
       });
     } else {
-      const newLeader = new Leaderboard({ name, scored, total });
+      const newLeader = new Leaderboard({ name, scored, total, type });
       await newLeader.save();
       return res.json({ result: true });
     }
